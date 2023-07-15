@@ -1,19 +1,19 @@
 # Amide coupling reaction dataset
 
-All available files can be downloaded at [here](https://drive.google.com/drive/folders/1IIUVKZJahufrSspAz5_nDCH7D29m7b1J?usp=share_link). List of files:
-- data.py an interfaece to load the dataset with different descriptors;
+All public information can be downloaded at [here](https://drive.google.com/drive/folders/1IIUVKZJahufrSspAz5_nDCH7D29m7b1J?usp=share_link). List of files:
 - sdf.tar.gz contains the optimized 3D structures of the molecules involved in the reactions;
 - v_desps.csv contains the steric descriptors of reaction centers;
 - AEV00001.tar.gz contains the AEV descriptors for each molecule;
-- aimnet_descriptors.tar.gz contains the QM descriptors for each molecule;
+- qm_descriptors.tar.gz contains the QM descriptors for each molecule;
 - modred_clean.csv contains the Mordred descriptor for each molecule;
 - morgan1024.csv contains the Morgan descriptor for each molecule;
 - word_idx.txt contains the mapping from the reaction context to the one-hot encoding index;
 
 
 **Besides the above molecule files, you also need to have access to reaction files to use the following code. The reaction files are under Reaxys patent.**
+**Our local cluster server is down for accessing the data. Maintainance in progress...**
 
-The dataset can be accessed using the `rxn` class in `data.py`. Here is the interface for the `rxn` class:
+`data.py` is a script to load the dataset with different descriptors. The dataset can be accessed using the `rxn` class in `data.py`. Here is the interface for the `rxn` class:
 ```
 class rxn(object):
     def __init__(self, folder: str):
@@ -47,7 +47,7 @@ class rxn(object):
     def get_mordred(self, idx):
         """Given a reaction idx, return reaction Mordred descriptor"""
 
-    def get_aimnet_descriptors(self, idx):
+    def get_qm_descriptors(self, idx):
         """Given a reaction idx, return QM descriptor"""
 
     def get_steric_desps(self, idx):
@@ -68,5 +68,5 @@ ids = rxns.all_idx2()
 info = rxns.get_rxn(ids[0])
 
 # get QM descriptors
-des = rxns.get_aimnet_descriptors(ids[0])
+des = rxns.get_qm_descriptors(ids[0])
 ```

@@ -319,8 +319,8 @@ class rxn(object):
         e = float(mol.GetProp("E_tot"))
         return e
 
-    def get_aimnet_descriptors(self, idx) -> List[float]:
-        """given ID2, return a list of AIMNET descriptors (50) for the reaction
+    def get_qm_descriptors(self, idx) -> List[float]:
+        """given ID2, return a list of QM descriptors for the reaction
         """
         acid_key, amine_key, p_key = self.get_rxn_3d(idx)
         acid_center, amine_center, p_centers = self.get_rxn_centers(idx)
