@@ -9,97 +9,81 @@ from typing import List
 
 class rxn(object):
     """A class for get reaction information.
-
-    Below are the columns of the reaction dataframe:
-    ID (contains duplicates i.e. reactions conducted at different temperatures)
-    Links
-    Reaction
-    Time: continuous value
-    Temperature: continuous value
-    pH: continuous value
-    Conditions
-    Reaction Type
-    Yield
-    Reagent
-    Catalyst
-    Solvent
-    acids
-    amines
-    products
-    acylisoureas
-    condition_bd: a list of 5 numbers. Each number represents a condition/reagent/solvent/catalysts
-    reagent_bd: a list of 5 numbers. Each number represents a condition/reagent/solvent/catalysts
-    solvent_bd
-    catalyst_bd
-    ID_2: the unique ID for each reactions
-    Label
-    acid_key
-    amine_key
-    product_key
-    acylisourea_key
-    Yield_std
-    acid_centers2
-    amine_centers2
-    p_centers2
     """
     def __init__(self, folder):
         self.folder = folder
         self.mols_folder = os.path.join(folder, "molecules")
-        self.df = pd.read_csv(os.path.join(folder, "reactions6_6.csv"), index_col="ID_2", low_memory=False)
+        self.df = pd.read_csv(os.path.join(folder, "reactions_example.csv"), index_col="ID_2", low_memory=False)
+        # self.df = pd.read_csv(os.path.join(folder, "internal_reactions6_6.csv"), index_col="ID_2", low_memory=False)
         context_path = os.path.join(folder, "molecules", "word_idx.txt")
         self.context_bd = json.load(open(context_path, "r"))
         self.context_dim = len(self.context_bd)
-        # self.h5 = h5py.File(os.path.join(folder, "molecules", "AEV00001.h5"), "r")
+
+        print("loading molecule descriptor...")
         self.h5 = os.path.join(folder, "molecules", "AEV00001")
-        self.aimnet = os.path.join(folder, "molecules", "aimnet_descriptors")
+        self.qm = os.path.join(folder, "molecules", "qm_descriptors")
         self.fp = pd.read_csv(os.path.join(folder, "molecules", "morgan1024.csv"), index_col="ID", low_memory=False)  #ID is molecular InChiKey
-        self.mordred0 = pd.read_csv(os.path.join(folder, "molecules", "mordred_clean.csv"), index_col="ID")
-        mordred_scaler = pickle.load(open(os.path.join(folder, "molecules", "mordred_MaxAbsScaler.pkl"), "rb"))
-        self.mordred = pd.DataFrame(mordred_scaler.transform(self.mordred0))
-        self.mordred["ID"] = self.mordred0.index
-        self.mordred.set_index("ID", inplace=True)
+        self.mordred = pd.read_csv(os.path.join(folder, "molecules", "mordred_clean.csv"), index_col="ID")  #consider normalizing
         self.sdf_es = pickle.load(open(os.path.join(folder, "molecules", "sdf_es.pkl"), "rb"))
+
+        print("loading reaction descriptor...")
+        self.fp_df = pd.read_csv(os.path.join(folder, "reaction_fp_desps.csv"), index_col=0)  #consider removing constant columns
+        self.mordred_df = pd.read_csv(os.path.join(folder, "reaction_mordred_desps.csv"), index_col=0)  #consider normalizing
         self.aev_df = pd.read_csv(os.path.join(folder, "reaction_aev_desps.csv"), index_col=0)
-        #stetric descriptors
+        self.qm_descriptor_df = pd.read_csv(os.path.join(folder, "reaction_qm_desps.csv"), index_col=0)  #consider normalizing
         self.steric_df = pd.read_csv(os.path.join(folder, 'molecules', 'v_desps.csv'), index_col='ids')
         steric_stats = self.steric_df.describe()
         self.steric_mean = steric_stats.loc['mean', :].values  # np array shape(24, )
         self.steric_std = steric_stats.loc['std', :].values  #np array shape(24, )
-
-        aimnet_dct = {0: "E rxn", 1: "Ea rxn", 2: "Fukui acid", 3: "Fukui amine", 4: "Fukui rxn",
-        5: "IP acid", 6: "IP amine", 7: "IP product", 8: "IP reactants", 9: "IP: rxn",
-        10: "EA acid", 11: "EA amine", 12: "EA product", 13: "EA reactnats", 14: "EA rxn",
-        15: "EN acid", 16: "EN amine", 17: "EN product", 18: "EN reactnats", 19: "EN rxn",
-        20: "Hardness acid", 21: "Hardness amine", 22: "Hardness product", 23: "Hardness reactnats", 24: "Hardness rxn",
-        25: "EP acid", 26: "EP amine", 27: "EP product", 28: "EP reactnats", 29: "EP rxn",
-        30: "Q_C", 31: "Q_N", 32: "Q_pC", 33: "Q_pN", 34: "Q_pCC", 35: "Q_pNN", 36: "Q_CN",
-        37: "Fukui1", 38: "Fukui2", 39: "Fukui3", 40: "Fukui4", 41: "Fukui5", 42: "Fukui6", 43: "Fukui7",
-        44: "EP1", 45: "EP2", 46: "EP3", 47: "EP4", 48: "EP5", 49: "EP6", 50: "EP7"}
-        # self.aimnet_descriptor_names = [val for _, val in aimnet_dct.items()]
-        aimnet_descriptor_df0 = pd.read_csv(os.path.join(folder, "reaction_aimnet_desps.csv"), index_col=0)
-        qm_scaler = pickle.load(open(os.path.join(folder, "qm_MaxAbsScaler.pkl"), "rb"))
-        self.aimnet_descriptor_df = pd.DataFrame(qm_scaler.transform(aimnet_descriptor_df0))
-        self.aimnet_descriptor_df["ID"] = aimnet_descriptor_df0.index
-        self.aimnet_descriptor_df.set_index("ID", inplace=True)
+        print("Done!")
 
     def all_idx2(self):
+        """Return the list of reaction indexes as we used in the paper.
+        These IDs are named as ID_2 in the reaction dataframe."""
         return self.df.index
+    
+    def id2id2(self, id):
+        """transforming Reaxys ID into ID_2
+        id: Reaxys ID
+        return: a list of ID_2"""
+        df2 = self.df[self.df["ID"] == id]
+        ID_2 = list(df2.index)
+        return ID_2
 
+    def get_fp_fast(self, idx) -> List[int]:
+        """"Given a reaction ID_2, return the fingerprint embedding of the reaction"""
+        return list(self.fp_df.loc[idx, :])
+    
+    def get_mordred_fast(self, idx) -> List[float]:
+        """"Given a reaction ID_2, return the Mordred embedding of the reaction"""
+        return list(self.mordred_df.loc[idx, :])
+    
+    def get_aev_fast(self, idx) -> List[float]:
+        """"Given a reaction ID_2, return an AEV embedding of the reaction"""
+        return list(self.aev_df.loc[idx, :])
+
+    def get_qm_fast(self, idx) -> List[float]:
+        """Given a reaction ID_2, return a list of QM descriptors for the reaction"""
+        return list(self.qm_descriptor_df.loc[idx, :])
+    
+    def get_steric_desps(self, idx) -> List[float]:
+        """Given a reaction ID_2, return the steric descriptors of the reaction"""
+        desps = self.steric_df.loc[idx, :].values  #np array shape (24, )
+        standardized_desps = np.nan_to_num((desps - self.steric_mean)/self.steric_std, nan=0)
+        return list(standardized_desps)
+
+    # THE FOLLOWING FUNCTIONS ARE ONLY MEANINGFUL IF YOU HAVE ACCESS TO REAXYS DATABASE
+    # OTHERWISE, THEY RETURN NAN FROM "reactinons_example.csv" OR ERROR.
     def get_yield(self, idx):
-        """Given reaction ID2, return the yield"""
+        """Given reaction ID_2, return the yield"""
         return float(self.df.loc[idx, "Yield"])
     
-
     def get_amine_type(self, idx):
-        """Given reaction ID2, return the amine"""
+        """Given a reaction ID_2, return the amine type"""
         return self.df.loc[idx, "amine_type"]
 
-
     def get_rxn(self, idx):
-        """Given a reaction idx (NOT REAXYS ID, but ID_2 in the reaction dataset), return all rxn info in the reaction.csv file
-        idx: ID_2 in the reaction dataframe
-        
-        Return a tuple of 13 elements"""
+        """Given a reaction ID_2, return all reaction info as a list"""
         id = self.df.loc[idx, 'ID']  #Reaxys ID
         link = self.df.loc[idx, 'Links']
 
@@ -119,7 +103,7 @@ class rxn(object):
         return [id, link, smi1, smi2, smi3, smi4, t, T, con, rea, sol, cat, yld]
 
     def get_rxn_size(self, idx):
-        """Given a reaction ID2, return the number of atoms (H not included) in acid, amine, product"""
+        """Given a reaction ID_2, return the number of atoms (H not included) in acid, amine, product"""
         id, link, smi1, smi2, smi3, smi4, t, T, con, rea, sol, cat, yld = self.get_rxn(idx)
         size1 = Chem.MolFromSmiles(smi1).GetNumAtoms()
         size2 = Chem.MolFromSmiles(smi2).GetNumAtoms()
@@ -127,7 +111,7 @@ class rxn(object):
         return [size1, size2, size3]
 
     def get_rxn_elements(self, idx):
-        """Given a reaction ID2, return the elements (H not included) in acid, amine, product"""
+        """Given a reaction ID_2, return the elements (H not included) in acid, amine, product"""
         id, link, smi1, smi2, smi3, smi4, t, T, con, rea, sol, cat, yld = self.get_rxn(idx)
         atoms1 = [a.GetSymbol() for a in Chem.MolFromSmiles(smi1).GetAtoms()]
         atoms2 = [a.GetSymbol() for a in Chem.MolFromSmiles(smi2).GetAtoms()]
@@ -135,21 +119,12 @@ class rxn(object):
         atoms = atoms1 + atoms2 + atoms3
         return set(atoms)
 
-
     def get_rxn_3d(self, idx):
-        """ID2"""
+        """Given a reaction ID_2, return the 3D coordinates file key of acid, amine, product"""
         acid_key = self.df.loc[idx, "acid_key"]
         amine_key = self.df.loc[idx, "amine_key"]
         p_key = self.df.loc[idx, "product_key"]
         return (acid_key, amine_key, p_key)
-
-    
-    def get_steric_desps(self, idx):
-        """ID2"""
-        desps = self.steric_df.loc[idx, :].values  #np array shape (24, )
-        standardized_desps = np.nan_to_num((desps - self.steric_mean)/self.steric_std, nan=0)
-        return list(standardized_desps)
-
 
     @staticmethod
     def get_rxn_centerr_helper(s):
@@ -160,23 +135,12 @@ class rxn(object):
             vals.append(int(val))
         return vals
 
-
     def get_rxn_centers(self, idx):
-        """ID2, rxn centers using SDF index (starting from 1)"""
+        """ID_2, rxn centers using SDF index (starting from 1)"""
         acid_center = self.get_rxn_centerr_helper(self.df.loc[idx, "acid_centers2"])
         amine_center = self.get_rxn_centerr_helper(self.df.loc[idx, "amine_centers2"])
         p_center = self.get_rxn_centerr_helper(self.df.loc[idx, "p_centers2"])
         return (acid_center, amine_center, p_center)
-
-    def id2id2(self, id):
-        """transforming Reaxys id into ID2
-        id: Reaxys ID
-        
-        return:
-        ID2: a list of Reayxs ids"""
-        df2 = self.df[self.df["ID"] == id]
-        ID2 = list(df2.index)
-        return ID2
 
     def string2vec(self, string):
         '''
@@ -188,7 +152,6 @@ class rxn(object):
         r = [int(val) for val in ss]
         return r
 
-
     def list2onehot(self, l):
         """
         given a list of integers, get the one-hot embedding
@@ -199,9 +162,8 @@ class rxn(object):
         one_hots = list(np.sum(one_hots, axis=0).astype(int))
         return one_hots
 
-
     def get_tT(self, idx):
-        """given ID2, return the reactio time (h) and Temperature (C)
+        """given ID_2, return the reactio time (h) and Temperature (C)
         idx: integer
         
         return
@@ -222,9 +184,8 @@ class rxn(object):
             temperature = 20
         return (time, temperature)
 
-
     def get_context_one_hot(self, idx):
-        """given ID2, return a one-hot embedding of the context
+        """given ID_2, return a one-hot embedding of the context
         idx: integer
         
         return
@@ -238,7 +199,7 @@ class rxn(object):
         return context_onehot
 
     def get_aev(self, idx, aggregation="sum"):
-        """"given ID2, return a AEV embedding of the reaction"""
+        """"given ID_2, return the AEV embedding of the reaction"""
         acid_key = self.df.loc[idx, "acid_key"]
         amine_key = self.df.loc[idx, "amine_key"]
         p_key = self.df.loc[idx, "product_key"]
@@ -280,13 +241,9 @@ class rxn(object):
         descriptors = list(descriptors1) + list(descriptors2) + list(descriptors3)
         return descriptors
 
-    def get_aev_(self, idx):
-        """"given ID2, return a AEV embedding of the reaction, using the dataset prepared by the get_aev method"""
-        return list(self.aev_df.loc[idx, :])
-
 
     def get_fp(self, idx: int) -> List[int]:
-        """given ID2, return rxn fingerprint"""
+        """given ID_2, return reaction fingerprint representation"""
         acid_key = self.df.loc[idx, "acid_key"]
         amine_key = self.df.loc[idx, "amine_key"]
         p_key = self.df.loc[idx, "product_key"]
@@ -300,7 +257,7 @@ class rxn(object):
         return fp
 
     def get_mordred(self, idx: int) -> List[int]:
-        """given ID2, return rxn fingerprint"""
+        """given ID_2, return reaction Mordred representation"""
         acid_key = self.df.loc[idx, "acid_key"]
         amine_key = self.df.loc[idx, "amine_key"]
         p_key = self.df.loc[idx, "product_key"]
@@ -320,7 +277,7 @@ class rxn(object):
         return e
 
     def get_qm_descriptors(self, idx) -> List[float]:
-        """given ID2, return a list of QM descriptors for the reaction
+        """given ID_2, return a list of QM descriptors for the reaction
         """
         acid_key, amine_key, p_key = self.get_rxn_3d(idx)
         acid_center, amine_center, p_centers = self.get_rxn_centers(idx)
@@ -332,9 +289,9 @@ class rxn(object):
         pc = sorted(p_centers)[0]  #asssuming C is first in SDF, N comes later
         pn = sorted(p_centers)[1]
 
-        acid = ujson.load(open(os.path.join(self.aimnet, f"{acid_key}.json"), "r"))
-        amine = ujson.load(open(os.path.join(self.aimnet, f"{amine_key}.json"), "r"))
-        p = ujson.load(open(os.path.join(self.aimnet, f"{p_key}.json"), "r"))
+        acid = ujson.load(open(os.path.join(self.qm, f"{acid_key}.json"), "r"))
+        amine = ujson.load(open(os.path.join(self.qm, f"{amine_key}.json"), "r"))
+        p = ujson.load(open(os.path.join(self.qm, f"{p_key}.json"), "r"))
 
         ## REACTION LEVEL (4 floats)
         # reaction energy (E_prod - E_amine - E_acid), float
@@ -444,28 +401,18 @@ class rxn(object):
                 C_fukui, N_fukui, pC_fukui, pN_fukui, pCC_fukui, pNN_fukui, CN_fukui,
                 C_omega, N_omega, pC_omega, pN_omega, pCC_omega, pNN_omega, CN_omega]
 
-    def get_aimnet_descriptors_(self, idx) -> List[float]:
-        """given ID2, return a list of AIMNET descriptors (50) for the reaction. The AIMNET descriptors were pre-saved as a DataFrame using get_aimnet_descriptors method
-        """
-        return list(self.aimnet_descriptor_df.loc[idx, :])
-
-
 if __name__ == "__main__":
-    import os, sys
-    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    sys.path.append(root)
-    from utils import folder, mols_folder
-
+    folder = "/Users/liu5/Documents/data/datav6/datav6_public_internal"
     rxns = rxn(folder)
     ids = rxns.all_idx2()
     for i, id in enumerate(ids):
-        des = rxns.get_aimnet_descriptors(id)
-        t, T = rxns.get_tT(id)
-        y = rxns.get_yield(id)
-        print(len(des), des[0], des[1], t, T, y)
-        # print(des[0], des[1])
-        if i == 100:
-            break
+        aev = rxns.get_aev_fast(id)
+        qm = rxns.get_qm_fast(id)
+        steric = rxns.get_steric_desps(id)
+        print(aev)
+        print(qm)
+        print(steric)
+        break
     # example = rxns.get_rxn(16336)
     # acid, amine, p, acy = example[2], example[3], example[4], example[5]
     # print(example)

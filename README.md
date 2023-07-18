@@ -1,17 +1,64 @@
 # Amide coupling reaction dataset
 
-All public information can be downloaded at [here](https://drive.google.com/drive/folders/1IIUVKZJahufrSspAz5_nDCH7D29m7b1J?usp=share_link). List of files:
-- sdf.tar.gz contains the optimized 3D structures of the molecules involved in the reactions;
-- v_desps.csv contains the steric descriptors of reaction centers;
-- AEV00001.tar.gz contains the AEV descriptors for each molecule;
-- qm_descriptors.tar.gz contains the QM descriptors for each molecule;
-- modred_clean.csv contains the Mordred descriptor for each molecule;
-- morgan1024.csv contains the Morgan descriptor for each molecule;
-- word_idx.txt contains the mapping from the reaction context to the one-hot encoding index;
+- Publicly available information: optimized molecule 3D structures in SDF format, molecular descriptors and reaction descriptors;
+- Available only when you have access to [Reaxys Database](https://www.reaxys.com/): Reactioin information and yields.
 
 
-**Besides the above molecule files, you also need to have access to reaction files to use the following code. The reaction files are under Reaxys patent.**
-**Our local cluster server is down for accessing the data. Maintainance in progress...**
+All public information can be downloaded [here](https://drive.google.com/drive/folders/1IIUVKZJahufrSspAz5_nDCH7D29m7b1J?usp=share_link). List of files:
+```
+.
+|____molecules
+| |____sdf.tar.gz  # optimized 3D structures of molecules (need to be unzipped)
+| |____morgan1024.csv  # Morgan descriptors of molecules
+| |____mordred_clean.csv  # Mordred descriptors of molecules
+| |____AEV00001.zip  # AEV descriptors of molecules (need to be unzipped)
+| |____qm_descriptors.tar.gz  # QM descriptors of molecules (need to be unzipped)
+| |____sdf_es.pkl  # a dictionary mapping from molecule inchikey to the electronic energy of the optimized 3D structure
+| |____word_idx.txt  # mapping from reaction context to one-hot encoding index
+| |____v_desps.csv  # steric descriptors of reactions
+|____reactions_example.csv  #empty file containing reaction information from Reaxys
+|____reaction_fp_desps.csv  # fingerprint descriptors of reactions
+|____reaction_mordred_desps.csv  # Mordred descriptors of reactions 
+|____reaction_aev_desps.csv # AEV descriptors of reactions
+|____reaction_qm_desps.csv  # QM descriptors of reactions
+|____qm_train_test_splits  # train/test splits for QM descriptors
+|____data.py  # an interface for loading the dataset
+```
+
+If you have access to Reaxys, you can download the reaction information and yields and fill the `reactions_example.csv` file. Then you will be abale to use all the functions in `data.py`. If you don't have access to Reaxys, **You can still easily load our reaction descriptors without having access to Reaxys**.
+Here are the information you need to get via Reaxys database:
+```
+    # columns of reactions_example.csv:
+    ID_2: our unique ID for each reaction
+    ID (Reaxys ID, reactions conducted at different conditions may have the same ID)
+    Links
+    Reaction (Reaction SMILES)
+    Time
+    Temperature
+    pH
+    Conditions
+    Reaction Type
+    Yield
+    Reagent
+    Catalyst
+    Solvent
+    acids (SMILES)
+    amines (SMILES)
+    products (SMILES)
+    acylisoureas (SMILES)
+    condition_bd: a list of 5 numbers. Each number represents a condition/reagent/solvent/catalysts
+    reagent_bd: a list of 5 numbers. Each number represents a condition/reagent/solvent/catalysts
+    solvent_bd
+    catalyst_bd
+    acid_key (InchiKey)
+    amine_key (InchiKey)
+    product_key (InchiKey)
+    acylisourea_key (InchiKey)
+    acid_centers2  (reaction center index)
+    amine_centers2 (reaction center index)
+    p_centers2 (reaction center indexes)
+```
+
 
 `data.py` is a script to load the dataset with different descriptors. The dataset can be accessed using the `rxn` class in `data.py`. Here is the interface for the `rxn` class:
 ```
@@ -21,38 +68,30 @@ class rxn(object):
         A class for getting reaction information.
         folder: a directory containing all relevant files
         """
-        self.folder = folder
     
     def all_idx2(self):
-        """Return the list of reaction indexes"""
+        """Return the list of reaction indexes as we used in the paper.
+        These IDs are named as ID_2 in the reaction dataframe."""
+    
+    def id2id2(self, id):
+        """transforming Reaxys ID into ID_2
+        id: Reaxys ID
+        return: a list of ID_2"""
 
-    def get_rxn(self, idx):
-        """Given a reaction idx, return all reaction info as a tuple."""
+    def get_fp_fast(self, idx) -> List[int]:
+        """"Given a reaction ID_2, return the fingerprint embedding of the reaction"""
+    
+    def get_mordred_fast(self, idx) -> List[float]:
+        """"Given a reaction ID_2, return the Mordred embedding of the reaction"""
+    
+    def get_aev_fast(self, idx) -> List[float]:
+        """"Given a reaction ID_2, return an AEV embedding of the reaction"""
 
-    def get_rxn_3d(self, idx):
-        """Given a reaction idx, return the keys for 3D structures of acid, amine, product"""
-
-    def get_rxn_centers(self, idx):
-        """Given a reaction idx, return reaction centers"""
-
-    def get_context_one_hot(self, idx):
-        """Given a reaction idx, return a one-hot embedding of the context"""
-
-    def get_aev(self, idx, aggregation="sum"):
-        """"Given a reaction idx, return the AEV embedding of the reaction"""
-
-    def get_fp(self, idx):
-        """Given a reaction idx, return reaction fingerprint"""
-
-    def get_mordred(self, idx):
-        """Given a reaction idx, return reaction Mordred descriptor"""
-
-    def get_qm_descriptors(self, idx):
-        """Given a reaction idx, return QM descriptor"""
-
-    def get_steric_desps(self, idx):
-        """Given a reaction idx, return the standardized steric descriptor"""
-
+    def get_qm_fast(self, idx) -> List[float]:
+        """Given a reaction ID_2, return a list of QM descriptors for the reaction"""
+    
+    def get_steric_desps(self, idx) -> List[float]:
+        """Given a reaction ID_2, return the steric descriptors of the reaction"""
 ```
 
 Example usage:
@@ -63,10 +102,11 @@ rxns = rxn(folder)
 # get all reaction id
 ids = rxns.all_idx2()
 
-# get reaction information
-# return a list containing the following information: Reaxys_ID, link, acid, amine, product, O-acylisourea, time, Temperature, condition, reagent, solvent, catalyst, yield
-info = rxns.get_rxn(ids[0])
-
-# get QM descriptors
-des = rxns.get_qm_descriptors(ids[0])
+# get the descriptors for the 1st reaction
+id = ids[0]
+fp = rxns.get_fp_fast(id)
+mordred = rxns.get_mordred_fast(id)
+aev = rxns.get_aev_fast(id)
+qm = rxns.get_qm_fast(id)
+steric = rxns.get_steric_desps(id)
 ```
