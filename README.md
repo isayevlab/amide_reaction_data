@@ -1,7 +1,7 @@
 # Amide coupling reaction dataset
 
 - Publicly available information: optimized molecule 3D structures in SDF format, molecular descriptors and reaction descriptors;
-- Available only when you have access to [Reaxys Database](https://www.reaxys.com/): Reactioin information and yields.
+- Available only when you have access to [Reaxys Database](https://www.reaxys.com/): the reaction CSV file (Reactioin information and yields).
 
 
 All public information can be downloaded [here](https://drive.google.com/drive/folders/1IIUVKZJahufrSspAz5_nDCH7D29m7b1J?usp=share_link). List of files:
@@ -16,7 +16,7 @@ All public information can be downloaded [here](https://drive.google.com/drive/f
 | |____sdf_es.pkl  # a dictionary mapping from molecule inchikey to the electronic energy of the optimized 3D structure
 | |____word_idx.txt  # mapping from reaction context to one-hot encoding index
 | |____v_desps.csv  # steric descriptors of reactions
-|____reactions_example.csv  #empty file containing reaction information from Reaxys
+|____reactions_example.csv  # ID and links to the reactions from Reaxys
 |____reaction_fp_desps.csv  # fingerprint descriptors of reactions
 |____reaction_mordred_desps.csv  # Mordred descriptors of reactions 
 |____reaction_aev_desps.csv # AEV descriptors of reactions
@@ -25,8 +25,8 @@ All public information can be downloaded [here](https://drive.google.com/drive/f
 |____data.py  # an interface for loading the dataset
 ```
 
-If you have access to Reaxys, you can download the reaction information and yields and fill the `reactions_example.csv` file. Then you will be abale to use all the functions in `data.py`. If you don't have access to Reaxys, **You can still easily load our reaction descriptors without having access to Reaxys**.
-Here are the information you need to get via Reaxys database:
+If you have access to Reaxys, you can easily get full information as in our paper. **The reaction IDs and links are available in the [`reactions_example.csv` file](https://drive.google.com/file/d/1ka5l256TAc4p-FhPh1ZMnNva8VsrCJeY/view?usp=drive_link)**. After filling the columns of the reaction CSV file, you will be abale to use all the functions in `data.py`. If you don't have access to Reaxys, **You can still easily load our reaction descriptors**.
+Here are the information you can get via Reaxys database:
 ```
     # columns of reactions_example.csv:
     ID_2: our unique ID for each reaction
