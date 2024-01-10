@@ -1,7 +1,7 @@
 # Amide coupling reaction dataset
 
 - Publicly available information: optimized molecule 3D structures in SDF format, molecular descriptors and reaction descriptors;
-- Available only when you have access to [Reaxys Database](https://www.reaxys.com/): the reaction CSV file (Reactioin information and yields).
+- Available only when you have access to [Reaxys Database](https://www.reaxys.com/): the reaction CSV file (Reactioin information and yields). **Your organization is very likely to have already subscribed to Reaxys.**
 
 
 All public information can be downloaded [here](https://drive.google.com/drive/folders/1IIUVKZJahufrSspAz5_nDCH7D29m7b1J?usp=share_link). List of files:
@@ -25,6 +25,14 @@ All public information can be downloaded [here](https://drive.google.com/drive/f
 |____data.py  # an interface for loading the dataset
 ```
 
+## data splits
+The whole dataset is split into 5 mutually exclusive parts:
+- `normal_ids.pkl`: 31,622 amide coupling reactions. The yield may or may not contain outliers. This should be the main dataset for training. It mimics the real-world scenario where the yield is not always reliable.
+- `train_uncertain_ids.pkl`: 2,292 amide coupling reactions. The yield for each reaction are known to be uncertain. This dataset may be used to validate the model performance on identifying uncertain reactions.
+- `test_uncertain_ids.pkl`: 3,000 amide coupling reactions. The yield for each reaction are known to be uncertain. This dataset may be used to test the model performance on identifying uncertain reactions.
+- `test_clean_ids.pkl`: 187 amide coupling reactions. The yield for each reaction are known to be reliable. This dataset may be used to test the model performance on predicting the yield of reliable reactions.
+
+## dataset interface
 If you have access to Reaxys, you can easily get full information as in our paper. **The reaction IDs and links are available in the [`reactions_example.csv` file](https://drive.google.com/file/d/1ka5l256TAc4p-FhPh1ZMnNva8VsrCJeY/view?usp=drive_link)**. After filling the columns of the reaction CSV file, you will be abale to use all the functions in `data.py`. If you don't have access to Reaxys, **You can still easily load our reaction descriptors**.
 Here are the information you can get via Reaxys database:
 ```
