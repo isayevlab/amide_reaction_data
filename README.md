@@ -1,10 +1,10 @@
 # Amide coupling reaction dataset
 
-- Publicly available information: optimized molecule 3D structures in SDF format, molecular descriptors and reaction descriptors;
+- Publicly available information: optimized molecule 3D structures in SDF format, molecular descriptors and reaction descriptors. All public information can be downloaded [here](https://drive.google.com/drive/folders/1IIUVKZJahufrSspAz5_nDCH7D29m7b1J?usp=share_link);
 - Available only when you have access to [Reaxys Database](https://www.reaxys.com/): the reaction CSV file (Reactioin information and yields). **Your organization is very likely to have already subscribed to Reaxys.**
 
 
-All public information can be downloaded [here](https://drive.google.com/drive/folders/1IIUVKZJahufrSspAz5_nDCH7D29m7b1J?usp=share_link). List of files:
+List of files in the public folder:
 ```
 .
 |____molecules
